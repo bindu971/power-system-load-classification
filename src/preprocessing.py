@@ -2,6 +2,11 @@
 # DATA LOADING AND CLEANING
 # ==========================================
 # These are the same cleaning steps used in notebooks/Load_Type_Classification.ipynb.
+#
+# Note: about 4-10% of usage / reactive power values look corrupted (roughly 2x too high).
+# The notebook shows the evidence. Treating them did not improve cross-validation,
+# so they are kept as they are (see the notebook, sections 5 and 10).
+#
 # Missing values are NOT filled here. They are filled by the imputer inside the
 # model pipeline, so the median is learned from training data only.
 
@@ -36,12 +41,20 @@ def clean_data(df):
     # The format is day-month-year, so we give it explicitly.
     df["date_time"] = pd.to_datetime(df["date_time"], format="%d-%m-%Y %H:%M")
 
+    # Midnight readings are written with the date of the day they END.
+    # In the file, "01-01-2018 23:45" is followed by "01-01-2018 00:00" and then "02-01-2018 00:15",
+    # so "01-01-2018 00:00" is really midnight at the start of 2 January.
+    # We add one day to every 00:00 timestamp BEFORE sorting and before creating date features.
+    is_midnight = (df["date_time"].dt.hour == 0) & (df["date_time"].dt.minute == 0)
+    df.loc[is_midnight, "date_time"] = df.loc[is_midnight, "date_time"] + pd.Timedelta(days=1)
+
     # One timestamp appears twice in the dataset and the second copy is corrupted.
     # We keep the first copy. This must happen BEFORE sorting,
     # so the original file order decides which copy is kept.
     df = df.drop_duplicates(subset="date_time", keep="first")
 
-    # Sort by time because the train/test split and cross-validation are time-based.
+    # Sort by time because cross-validation is time-based.
+    # After the midnight fix, every row is exactly 15 minutes after the previous one.
     df = df.sort_values("date_time").reset_index(drop=True)
 
     # NSM = seconds from midnight. Many stored values are wrong or missing,

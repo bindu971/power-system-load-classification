@@ -17,6 +17,7 @@ import pandas as pd
 
 from src.preprocessing import load_data, clean_data
 from src.feature_engineering import add_features, FEATURES, TARGET
+from src.train_model import TEST_START, TEST_END
 
 
 # Path to the saved model, built from this file's location
@@ -42,7 +43,7 @@ if __name__ == "__main__":
 
     # Example: prepare the December readings (the test month) the same way as in training
     df = add_features(clean_data(load_data(DATA_PATH)))
-    test_data = df[df["month"] == 12]
+    test_data = df[(df["date_time"] >= TEST_START) & (df["date_time"] <= TEST_END)]
 
     # Pick 8 random December readings (same rows as the example in the notebook)
     example_rows = test_data.sample(8, random_state=42)

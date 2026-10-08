@@ -11,6 +11,7 @@
 # Run from the project folder:
 #   python -m src.train_model
 
+import warnings
 from pathlib import Path
 
 import joblib
@@ -26,6 +27,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.metrics import classification_report
+from sklearn.exceptions import ConvergenceWarning
 
 from src.preprocessing import load_data, clean_data
 from src.feature_engineering import add_features, FEATURES, TARGET
@@ -36,11 +38,23 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_PATH = PROJECT_ROOT / "data" / "load_data.csv"
 MODEL_PATH = PROJECT_ROOT / "models" / "final_model.pkl"
 
+# Train and test periods. December 2018 (the last month) is the test set.
+# The 2019-01-01 00:00 reading (midnight at the end of 31 December) is outside both periods.
+TRAIN_START = "2018-01-01 00:00"
+TRAIN_END = "2018-11-30 23:59"
+TEST_START = "2018-12-01 00:00"
+TEST_END = "2018-12-31 23:59"
+
 # Fixed random seed so results are the same every run
 RANDOM_STATE = 42
 
 # Class order used in the report (from lowest to highest load)
 LABELS = ["Light_Load", "Medium_Load", "Maximum_Load"]
+
+# Logistic regression WITHOUT scaling is trained only as a comparison.
+# It does not converge (part of the evidence that scaling is needed),
+# and it prints the same long warning in every fold, so we hide only this warning type.
+warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 
 def main():
@@ -55,9 +69,10 @@ def main():
     # ------------------------------------------
     # Time-based split: December is the test set
     # ------------------------------------------
-    is_december = df["month"] == 12
-    train_data = df[~is_december]
-    test_data = df[is_december]
+    is_train_period = (df["date_time"] >= TRAIN_START) & (df["date_time"] <= TRAIN_END)
+    is_test_period = (df["date_time"] >= TEST_START) & (df["date_time"] <= TEST_END)
+    train_data = df[is_train_period]
+    test_data = df[is_test_period]
 
     X_train = train_data[FEATURES]
     y_train = train_data[TARGET]
@@ -65,6 +80,7 @@ def main():
     y_test = test_data[TARGET]
     print("Train rows (Jan-Nov):", len(X_train))
     print("Test rows (December):", len(X_test))
+    print("Rows outside both periods:", len(df) - len(X_train) - len(X_test))
 
     # ------------------------------------------
     # Models to compare

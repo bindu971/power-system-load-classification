@@ -20,8 +20,9 @@ FEATURES = [
 # Column we want to predict
 TARGET = "load_type"
 
-# The EDA showed that Nov-Feb follow a different daily load schedule from Mar-Oct.
-# December is treated as winter because it sits between November and January.
+# EDA on the TRAINING period (Jan-Nov) showed that Jan, Feb and Nov follow a different
+# daily load schedule from Mar-Oct. December is treated as winter because it sits
+# between November and January (an assumption, not something learned from December).
 WINTER_MONTHS = [11, 12, 1, 2]
 
 
@@ -32,7 +33,7 @@ def add_features(df):
     # Day of week: 0 = Monday, 6 = Sunday
     df["day_of_week"] = df["date_time"].dt.dayofweek
 
-    # Month is used for the train/test split and the winter flag.
+    # Month is used to create the winter flag.
     # It is NOT a model feature, because December never appears in training.
     df["month"] = df["date_time"].dt.month
 
