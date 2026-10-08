@@ -1,0 +1,7 @@
+# Python cache files created when scripts run
+__pycache__/
+# Jupyter autosave folders
+.ipynb_checkpoints/
+# Local virtual environments
+.venv/
+venv/
